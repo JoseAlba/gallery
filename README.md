@@ -94,6 +94,11 @@ more details):
 flutter pub run grinder update-code-segments
 ```
 
+To generate dartpads (see separate [README](tool/dartpad_cli/README.md) for
+more details):
+```
+flutter pub run grinder generate-dartpads
+```
 ## Creating a new release (for Flutter org members)
 
 1. Bump the version number up in the `pubspec.yaml`. Use semantic versioning to determine 

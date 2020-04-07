@@ -24,6 +24,19 @@ Future<void> format({String path = '.'}) async {
   await _runProcess('flutter', ['format', path]);
 }
 
+@Task('Generate DartPad Files')
+Future<void> generateDartpads() async {
+  final dartpadScriptFile = path.join(
+    Directory.current.path,
+    'tool',
+    'dartpad_cli',
+    'main.dart'
+  );
+  Dart.run(dartpadScriptFile);
+
+  await _runProcess('flutter', ['format', 'dartpad']);
+}
+
 @Task('Generate localizations files')
 Future<void> generateLocalizations() async {
   final l10nScriptFile = path.join(

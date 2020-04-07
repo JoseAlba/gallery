@@ -1,6 +1,18 @@
 import 'dart:io';
 
+import 'package:flutter/material.dart';
+
 const List<String> iconNumbering = ['one', 'two', '3', '4', '5', '6'];
+
+var mergeFilesIntoKey = <String, List<String>>{
+  'reference/transformations_demo.dart': [
+    'reference/transformations_demo_board.dart',
+    'reference/transformations_demo_color_picker.dart',
+    'reference/transformations_demo_edit_board_point.dart',
+    'reference/transformations_demo_gesture_transformable.dart',
+    'reference/transformations_demo_inertial_motion.dart'
+  ],
+};
 
 /// Method capitalizes the first word of a paragraph.
 String toTitleCase(String str) => str
@@ -12,6 +24,7 @@ String toTitleCase(String str) => str
 
 /// Method generated the string that will be show within dartpad_metadata.yaml.
 void generateDartpadMetadata(String fileDirectory, String fileName) {
+  File(fileDirectory + '/dartpad_metadata.yaml').create();
   File(fileDirectory + '/dartpad_metadata.yaml').writeAsString(
       'name: ${toTitleCase(fileName.replaceAll('_', ' ')).replaceAll('Demo.dart', '')}Demonstration\n'
       'mode: flutter\n'
@@ -55,9 +68,8 @@ List<String> generateExecutablesForClass(
 
 /// Replaces GalleryLocalizations Strings with English equivalent.
 String replaceGalleryLocalizations(String fileContent) {
-  fileContent = fileContent.replaceFirst('import \'package:gallery/l10n/gallery_localizations.dart\';', '');
-//  RegExp galleryLocalizationRegExp = RegExp(r'GalleryLocalizations.of\(context\)\.\w*(\(\s*.*\s*\))?,?');
-//  RegExp galleryLocalizationRegExp = RegExp(r'GalleryLocalizations.of\(context\)\.\w*(\(\s*.*\s*\))?,?');
+  fileContent = fileContent.replaceFirst(
+      'import \'package:gallery/l10n/gallery_localizations.dart\';', '');
   RegExp galleryLocalizationRegExp =
       RegExp(r'GalleryLocalizations.of\(context\)\.\w*');
   List<String> englishEquivalent = List<String>();
@@ -73,9 +85,6 @@ String replaceGalleryLocalizations(String fileContent) {
 //  String variableInGalleryLocalization;
   String translationFile = File('lib/l10n/intl_en_US.xml').readAsStringSync();
   englishEquivalent.forEach((element) {
-//    variableInGalleryLocalization = element.replaceAll('GalleryLocalizations.of\(context\)\.', '');
-//    print(variableInGalleryLocalization);
-
     RegExp englishLocalizationsRegExp =
         RegExp(element + r'\"s*\s*.*\s*>[\w\s]*');
     String match = englishLocalizationsRegExp
@@ -83,9 +92,6 @@ String replaceGalleryLocalizations(String fileContent) {
         .group(0)
         .replaceFirst(RegExp(element + r'\"s*\s*.*\s*>'), '');
 
-    print('GalleryLocalizations.of\(context\)\.' + element);
-    print(
-        fileContent.contains('GalleryLocalizations.of\(context\)\.' + element));
     fileContent = fileContent.replaceFirst(
         'GalleryLocalizations.of\(context\)\.' + element, '\'$match\'');
   });
@@ -95,8 +101,18 @@ String replaceGalleryLocalizations(String fileContent) {
 
 /// Update main file for each directory with necessary updates to make the dart
 /// file an actual executable.
-void updateMainFile(String fileContent, File file,
-    List<String> executablesForClass, String fileName) {
+void updateMainFile(
+    String fileContent,
+    File file,
+    List<String> executablesForClass,
+    String fileName,
+    String subDirectory,
+    String from) {
+  if (mergeFilesIntoKey.containsKey('$subDirectory/$fileName')) {
+    mergeFiles(file, '$subDirectory/$fileName', from);
+    fileContent = file.readAsStringSync();
+  }
+
   final materialImport =
       fileContent.contains(RegExp('import \'package:flutter/material.dart\';'))
           ? ''
@@ -166,6 +182,9 @@ Future<Null> createDartpadFolder(String from, String to) async {
   List<String> executables = generateExecutables();
 
   await for (final file in Directory(from).list(recursive: true)) {
+    String subDirectory = file.path
+        .replaceAll('lib/demos/', '')
+        .replaceAll(RegExp(r'/\w*.dart'), '');
     final copyTo = (to + file.path.toString()).replaceAll(from, '');
 
     if (file is Directory) {
@@ -180,19 +199,86 @@ Future<Null> createDartpadFolder(String from, String to) async {
         File(file.path)
             .copySync(to + 'reference/transformations_demo/' + fileName);
       } else {
-        // Generate dartpad_metadata for each file
-        generateDartpadMetadata(fileDirectory, fileName);
-
         await Directory(fileDirectory).create(recursive: true);
         await File(file.path).copy(fileDirectory + '/main.dart').then((file) {
           var fileContent = file.readAsStringSync();
           final executablesForClass =
               generateExecutablesForClass(executables, fileContent);
-          updateMainFile(fileContent, file, executablesForClass, fileName);
+          updateMainFile(fileContent, file, executablesForClass, fileName,
+              subDirectory, from);
         });
+
+        // Generate dartpad_metadata for each file
+        generateDartpadMetadata(fileDirectory, fileName);
+
       }
     }
   }
+
+//  removeMergeFileValues(to);
+}
+
+void removeMergeFileValues(String to) {
+//  bool shouldRemove = false;
+  List<String> fileNames = [];
+  mergeFilesIntoKey.values.forEach((elements) => elements.forEach((element) => fileNames.add(element.replaceAll(RegExp(r'\w*\/'), ''))));
+  
+  print(fileNames);
+  
+//  Directory(to).listSync(recursive: true).removeWhere((element) => fileNames.contains(element));
+//  fileNames.forEach((element) { })
+//  Directory(to).listSync(recursive: true).removeWhere((file) {
+//    if (file is File) {
+//      shouldRemove = false;
+//      mergeFilesIntoKey.values.forEach((elements) {
+//        elements.forEach((element) {
+//            print(element);
+//            print(file);
+//          if (file.toString().contains(element)) {
+//            shouldRemove = true;
+//          }
+//        });
+//      });
+//      return shouldRemove;
+//    }
+//
+//    return false;
+//  });
+
+}
+
+
+/// Combines a bunch of different files into one. This uses [mergeFilesIntoKey]
+/// to see what files should be merged together.
+void mergeFiles(File file, String key, String from) {
+  String fileContent = file.readAsStringSync();
+  fileContent = file.readAsStringSync();
+  List<String> fileNames = [];
+
+  // Check if value exist if it does add to main file.
+  mergeFilesIntoKey[key].forEach((element) {
+    String completePath = from + element;
+    if (!File(completePath).existsSync()) {
+      print('$element does not exist');
+    } else {
+      fileNames.add(element.replaceAll(RegExp(r'\w*\/'), ''));
+      fileContent += '\n\n${File(completePath).readAsStringSync()}';
+    }
+  });
+
+  List<String> allImports = [];
+  RegExp(r'import .*').allMatches(fileContent).forEach((element) {
+    allImports.add(element[0]);
+  });
+  fileContent = fileContent.replaceAll(RegExp(r'import .*'), '');
+
+  fileNames.forEach((value) => allImports.removeWhere((element) => element.contains(value)));
+
+  file.writeAsStringSync(removeDuplicates(allImports).join('\n')+ fileContent);
+}
+
+List<String> removeDuplicates(List<String> list) {
+  return list.toSet().toList();
 }
 
 void main(List<String> arguments) {
