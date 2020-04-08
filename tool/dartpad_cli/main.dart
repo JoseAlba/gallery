@@ -211,9 +211,9 @@ Future<Null> createDartpadFolder(String from, String to) async {
 
       }
     }
+    removeMergeFileValues(to);
   }
 
-  removeMergeFileValues(to);
 }
 
 void removeMergeFileValues(String to) {
